@@ -5,9 +5,25 @@ using System.Net;
 using System.Text.RegularExpressions;
 namespace ConsoleApp1
 {
+    class URL
+    {
+        string url;
+        int deep;
+        public URL(string url,int deep)
+        {
+            this.url = url;
+            this.deep = deep;
+            
+        }
+
+
+    }
+
+    
+
     class Crawler
     {
-        string urlIndex = "http://www.phimmoi.net";
+        string urlIndex = "http://www.studyphim.vn/movies/friends-season-1/play?episode=24";
         float timeout = 5f;
         int deepCrawler = 1;
 
@@ -15,13 +31,24 @@ namespace ConsoleApp1
         {
             Console.WriteLine("Load html");
             Console.WriteLine(urlIndex);
-            urlIndex = ParseToURL(urlIndex);
             Console.WriteLine(urlIndex);
+
             string html = GetStringFromUrls(urlIndex);
+
+            string onlyText = html;
+            string parttern = "(</((.)|(/n))*>)|(<((.)|(/n))*/>)|(<((.)|(/n))*>)";
+            onlyText = Regex.Replace(html, parttern,"");
+            Console.WriteLine("------------BEGIN TEXT------------");
+            Console.WriteLine(onlyText);
+            Console.WriteLine("------------END TEXT------------");
+
+
             Console.WriteLine("Find URL");
             GetURLs(html);
             Console.ReadLine();
         }
+
+
 
         public String GetStringFromUrls(string Url)
         {
@@ -33,7 +60,6 @@ namespace ConsoleApp1
             string result = reader.ReadToEnd();
             return result;
         }
-
         void GetURLs(string s)
         {
             string parttern = "href=\"\\S*\"";
@@ -49,7 +75,7 @@ namespace ConsoleApp1
                 }
 
                 string invalidFortmat = "\\.\\w*\"";
-                if (Regex.IsMatch(m.ToString(), invalidFortmat)  && IsUrls(m.ToString()) )
+                if (Regex.IsMatch(m.ToString(), invalidFortmat) && IsUrls(m.ToString()))
                 {
                     invalidUrls.Add(m.ToString());
                 }
@@ -59,7 +85,7 @@ namespace ConsoleApp1
             foreach (string url in urls)
             {
                 Console.WriteLine(url);
-               // Console.WriteLine(ParseToURL(url,urlIndex));
+                Console.WriteLine(ParseToURL(url,urlIndex));
             }
             Console.WriteLine("Found " + mc.Count + " URLs");
             Console.WriteLine("Found " + urls.Count + " URLs valid");
@@ -67,8 +93,8 @@ namespace ConsoleApp1
 
         string RemoveHref(string page)
         {
-            if(!page.Contains("href"))
-             return page;
+            if (!page.Contains("href"))
+                return page;
             page = page.Remove(0, 6);
             page = page.Remove(page.Length - 1);
             return page;
@@ -76,69 +102,69 @@ namespace ConsoleApp1
 
         bool IsUrls(string s)
         {
-            string parttern = ".png|.css";
+            string parttern = ".png|.css|.html";
             if (Regex.IsMatch(s, parttern))
                 return false;
             return true;
         }
 
-        string ParseToURL(string page,string index=null)
+        string ParseToURL(string page, string index = null)
         {
-            //example phimmoi.net       -> http://phimmoi.net
-            //example phimmoi.com.vn    -> http://phimmoi.com.vn
-            //example http://phimmoi.com.vn/    -> http://phimmoi.com.vn
-            if (index != null)
-                page = RemoveHref(page);
+            ///1 check http://www
+            ///2 check //www.
+            ///3 split by first /
 
-            if (index!=null)
-              if (!page.Contains(index))
-                    page = index + "/" + page;
-            
-
-            string[] s = page.Split('.');
-          //  if(s.Length<)
-
-            //1 http://     false   
-            //2 www.        false
-            //3 phimmoi.    true
-            //4 com.vn      true
-            string s1="", s2="", s3="";
-            if(s.Length==2)
+            //1,2
+            page = RemoveHref(page);
+            if (page.Contains("//"))
             {
-                s2 = s[0];
-                s3 = s[1];
+                page = page.Remove(0, page.IndexOf("//") + 2);
             }
-            else if(s.Length==3)
+
+            if (page.EndsWith("/"))
+                page = page.Remove(page.Length - 1, 1);
+            //3
+            // .png .css
+            // .com .com.vn .net 
+            string f1 = "", f2 = "";
+            if (page.Contains("/"))
             {
-                if(s[0].Contains("www"))
+                string f3 = page.Split('/')[0];
+                if (IsValidURL(f3))
                 {
-                    s1 = s[0];
-                    s2 = s[1];
-                    s3 = s[2];
+                    f1 = f3;
+                    f2 = page.Remove(0, page.IndexOf('/') + 1);
                 }
                 else
                 {
-                    s2 = s[0];
-                    s3 = s[1]+"."+s[2];
+                    f2 = page;
                 }
             }
             else
             {
-                Console.WriteLine("bug");
-                Console.WriteLine(page);
-                Console.WriteLine(index);
-                Console.ReadLine();
+                if (IsValidURL(page))
+                    f1 = page;
+                else
+                    f2 = page;
             }
+            if (string.IsNullOrEmpty(f1))
+                f1 += index;
+            if (string.IsNullOrEmpty(f2))
+                page = "http://" + f1;
+            else
+                page = "http://" + f1 + "/" + f2;
 
-
-            s1 = "http://www";
-            if (s3.EndsWith("/"))
-                s3.Remove(s3.Length-1);
-            page = s1 + "." + s2 + "." + s3;
             return page;
         }
 
-        bool IsInside(string page,string index)
+        bool IsValidURL(string url)
+        {
+            if (url.Contains(".com") || url.Contains(".net"))
+                return true;
+            return false;
+        }
+
+        bool IsInside(string page, string index)
         {
             return page.Contains(index);
         }

@@ -16,7 +16,7 @@ namespace ConsoleApp1
             {
                 Console.WriteLine(e);
             }
-        }
+        } 
 
         static void Example2()
         {
